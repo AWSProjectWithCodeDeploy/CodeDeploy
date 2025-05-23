@@ -1,7 +1,3 @@
 region: "ap-northeast-2"
 
-vpc_subnet_public_2a: "present"
-vpc_subnet_public_2c: "present"
-vpc_subnet_private_2a: "present"
-vpc_subnet_private_2c: "present"
 
