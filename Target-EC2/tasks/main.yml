@@ -1,0 +1,19 @@
+---
+# tasks file for Target-EC2
+---
+- name: Launch Target EC2 instance
+  ec2_instance:
+    name: "project3-target"
+    key_name: "{{ key_name }}"
+    instance_type: "t2.micro"
+    image_id: "{{ ami_ubuntu_22_04 }}"
+    region: "{{ aws_region }}"
+    vpc_subnet_id: "{{ subnet_project3_public_2a }}"
+    assign_public_ip: true
+    security_group: 
+      - "{{ sg_ssh }}"
+      - "{{ sg_http }}"
+    tags:
+      Name: "project3-target"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"

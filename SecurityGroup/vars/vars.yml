@@ -1,0 +1,19 @@
+---
+region: ap-northeast-2
+
+security_groups:
+  - name: Project3-SSH-Accept
+    description: Project3-SSH-Accept
+    ports: [22]
+    var_name: sg_ssh_id
+
+  - name: Project3-HTTP-Accept
+    description: Project3-HTTP-Accept
+    ports: [80, 443]
+    var_name: sg_http_id
+
+  - name: Project3-Jenkins-Accept
+    description: Project3-Jenkins-Accept
+    ports: [8080]
+    var_name: sg_jenkins_id
+

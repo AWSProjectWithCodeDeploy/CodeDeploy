@@ -1,0 +1,19 @@
+---
+- name: Create ED25519 key pair and save private key into a file
+  amazon.aws.ec2_key:
+    region: "{{ region }}" 
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    name: project3-key
+    key_type: ed25519
+    file_name: /root/aws_ssh_rsa
+  when: key_state == "present"
+
+- name: remove key pair from AWS by name
+  amazon.aws.ec2_key:
+    region: "{{ region }}" 
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    name: project3-key
+    state: absent   
+  when: key_state == "absent"

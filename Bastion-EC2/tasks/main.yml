@@ -1,0 +1,54 @@
+---
+- name: Get SUBnet info
+  amazon.aws.ec2_vpc_net_info:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    filters:
+      "tag:Name": project3-public-2a
+  register: vpc_info
+  when: EC2_state == "present"
+
+- name: Check VPC info after creation or before deletion
+  amazon.aws.ec2_vpc_subnet_info:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+    filters:
+      vpc-id: "{{ vpc_info.vpcs[0].vpc_id }}"
+  register: vpc_info
+  when: EC2_state == "present"
+
+- name: Debug VPC Info
+  ansible.builtin.debug:
+    var: vpc_info
+  when: EC2_state == "present"
+
+
+- name: Create Bastion EC2
+  amazon.aws.ec2_instance:
+    name: "{{ bastion_instance_name }}"
+    key_name: "{{ key }}"
+    vpc_subnet_id: "{{ subnet_public1_id }}"
+    instance_type: "{{ bastion_instance_type }}"
+    security_group: "{{ security_group_id }}"
+    network:
+      assign_public_ip: true
+    image_id: "{{ amazon_linux_2_id }}"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    wait: yes
+    tags:
+      Name: project3-bastion
+    state: running
+  when: ec2_instance_state == "present"
+
+- name: Delete Bastion EC2
+  amazon.aws.ec2_instance:
+    name: "{{ bastion_instance_name }}"
+    state: absent
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    region: "{{ region }}"
+  when: ec2_instance_state == "absent"

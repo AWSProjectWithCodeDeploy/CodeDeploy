@@ -1,0 +1,11 @@
+---
+# vars file for Target-EC2
+---
+ami_ubuntu_22_04: "ami-0abcdef1234567890"       # 실제 Ubuntu 22.04 AMI ID
+subnet_project3_public_2a: "subnet-0abc123def456ghi7"  # 실제 서브넷 ID
+sg_ssh: "Project3-SSH-Accept"
+sg_http: "Project3-HTTP-Accept"
+aws_region: "ap-northeast-2"
+key_name: "project3-key"
+aws_access_key: "YOUR_AWS_ACCESS_KEY"
+aws_secret_key: "YOUR_AWS_SECRET_KEY"

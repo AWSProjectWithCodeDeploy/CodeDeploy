@@ -1,0 +1,50 @@
+---
+
+- name: Check VPC info after creation or before deletion
+  amazon.aws.ec2_vpc_net_info:
+    region: "{{ region }}"
+    filters:
+      "tag:Name": project3-vpc
+  register: vpc_info
+  when: security_group_state in ["present", "absent"]
+
+- name: Create security groups
+  amazon.aws.ec2_group:
+    name: "{{ item.name }}"
+    description: "{{ item.description }}"
+    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+    region: "{{ region }}"
+    rules: |
+      [{% for port in item.ports %}
+        {"proto": "tcp", "from_port": {{ port }}, "to_port": {{ port }}, "cidr_ip": "0.0.0.0/0"}{% if not loop.last %},{% endif %}
+      {% endfor %}]
+    rules_egress:
+      - proto: -1
+        from_port: 0
+        to_port: 0
+        cidr_ip: 0.0.0.0/0
+    tags:
+      Name: "{{ item.name }}"
+  register: sg_results
+  when: security_group_state == "present"
+  loop: "{{ security_groups }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Delete security groups
+  amazon.aws.ec2_group:
+    name: "{{ item.name }}"
+    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+    region: "{{ region }}"
+    state: absent
+  when: security_group_state == "absent"
+  loop: "{{ security_groups }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+
+- name: Set SG IDs as global variables (only if creating)
+  set_fact:
+    "{{ item.item.var_name }}": "{{ item.group_id }}"
+  loop: "{{ sg_results.results }}"
+  when: security_group_state == "present"

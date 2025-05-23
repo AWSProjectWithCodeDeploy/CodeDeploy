@@ -1,0 +1,8 @@
+# 플레이북 예시
+- hosts: localhost
+  vars_files:
+    - KEYGEN/vars/vars.yml
+  vars:
+    key_state: "present"
+  roles:
+    - KEYGEN

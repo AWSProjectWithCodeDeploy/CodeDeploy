@@ -1,0 +1,4 @@
+---
+region: ap-northeast-2
+iam_role_name: project3-code-deploy-role
+aws_account_id: "491085389788"

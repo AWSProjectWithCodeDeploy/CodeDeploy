@@ -1,0 +1,8 @@
+- hosts: localhost
+
+  vars_files:
+    - SecurityGroup/vars/vars.yml
+  vars:
+    security_group_state: "present"
+  roles:
+    - SecurityGroup

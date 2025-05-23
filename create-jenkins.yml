@@ -1,0 +1,11 @@
+---
+- name: Jenkins EC2 생성
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars_files:
+    - Jenkins-EC2/vars/vars.yml
+  vars:
+    EC2_state: "present"
+  roles:
+    - Jenkins-EC2
