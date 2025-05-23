@@ -1,19 +1,64 @@
 ---
-# tasks file for Target-EC2
----
+
+- name: Get VPC info
+  amazon.aws.ec2_vpc_net_info:
+    region: "{{ region }}"
+    filters:
+      "tag:Name": project3-vpc
+  register: vpc_info
+  when: EC2_state == "present"
+
+- name: Check VPC info after creation or before deletion
+  amazon.aws.ec2_vpc_subnet_info:
+    region: "{{ region }}"
+    filters:
+      "tag:Name": project3-private-2a
+      vpc-id: "{{ vpc_info.vpcs[0].vpc_id }}"
+  register: subnet_info
+  when: EC2_state == "present"
+
+- name: Debug VPC Info
+  ansible.builtin.debug:
+    var: vpc_info
+  when: EC2_state == "present"
+
+
 - name: Launch Target EC2 instance
-  ec2_instance:
-    name: "project3-target"
+  amazon.aws.ec2_instance:
+    name: "{{ instance_name }}"
     key_name: "{{ key_name }}"
-    instance_type: "t2.micro"
-    image_id: "{{ ami_ubuntu_22_04 }}"
-    region: "{{ aws_region }}"
-    vpc_subnet_id: "{{ subnet_project3_public_2a }}"
-    assign_public_ip: true
-    security_group: 
-      - "{{ sg_ssh }}"
-      - "{{ sg_http }}"
-    tags:
-      Name: "project3-target"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
+    instance_type: "{{ instance_type }}"
+    image_id: "{{ ami_id }}"
+    region: "{{ region }}"
+    vpc_subnet_id: "{{ subnet_info.subnets[0].subnet_id }}"
+    security_groups: "{{ security_groups }}"
+    network:
+      assign_public_ip: true
+    user_data: "{{ lookup('file', 'files/userdata.sh') }}"
+    wait: true
+    count: 1
+    volumes:
+      - device_name: /dev/xvda
+        ebs:
+          volume_size: 25
+          delete_on_termination: true
+          volume_type: gp2
+  register: ec2_info
+  when: EC2_state == "present"
+
+- name: Get Jenkins EC2 instance info
+  amazon.aws.ec2_instance_info:
+    region: "{{ region }}"
+    filters:
+      tag:Name: "{{ instance_name }}"
+      instance-state-name: running
+  register: Target_ec2_info
+  when: EC2_state == "absent"
+
+- name: Terminate Jenkins EC2 instance
+  amazon.aws.ec2_instance:
+    instance_ids: "{{ Target_ec2_info.instances  | map(attribute='instance_id') | list }}"
+    region: "{{ region }}"
+    state: absent
+    wait: true
+  when: EC2_state == "absent"

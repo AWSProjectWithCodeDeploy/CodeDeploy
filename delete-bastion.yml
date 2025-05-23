@@ -5,7 +5,7 @@
     - Bastion-EC2/vars/vars.yml
 
   vars:
-    ec2_instance_state: present
+    ec2_instance_state: absent
 
   roles:
     - Bastion-EC2

@@ -1,11 +1,11 @@
 ---
-- name: Jenkins EC2 생성
+- name: Jenkins EC2 삭제
   hosts: localhost
-  connection: local
-  gather_facts: no
+
   vars_files:
     - Jenkins-EC2/vars/vars.yml
   vars:
     EC2_state: "absent"
+    
   roles:
     - Jenkins-EC2

@@ -1,7 +1,7 @@
 ---
 - name: Jenkins EC2 생성
   hosts: localhost
-  connection: local
+  connection: ssh
   gather_facts: no
   vars_files:
     - Jenkins-EC2/vars/vars.yml

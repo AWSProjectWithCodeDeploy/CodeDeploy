@@ -1,12 +1,10 @@
 ---
 # vars file for Bastion-EC2
-ec2_instance_state: present
 
 bastion_instance_name: project3-bastion
 bastion_instance_type: t2.micro
 
 key: project3-key
-security_group_id:
-  - Project3-HTTP-Accept
+security_group_id: Project3-SSH-Accept
 amazon_linux_2_id: ami-05a7f3469a7653972
 region: ap-northeast-2

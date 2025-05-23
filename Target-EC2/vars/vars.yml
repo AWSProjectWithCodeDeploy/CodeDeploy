@@ -1,0 +1,11 @@
+---
+#AWS Credentials
+region: "ap-northeast-2"
+
+#EC2 Parameters
+ami_id: "ami-05a7f3469a7653972"   # 실제 Ubuntu 22.04 LTS AMI ID
+key_name: project3-key
+security_groups: ["Project3-HTTP-Accept", "Project3-SSH-Accept" ]
+instance_type: t2.micro
+aws_account_id: "491085389788"  
+instance_name: "project3-Target-EC2"
