@@ -1,0 +1,8 @@
+---
+- name: Launch Target EC2 instance using role
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  roles:
+    - Target-EC2
