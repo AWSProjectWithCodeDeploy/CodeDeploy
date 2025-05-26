@@ -1,0 +1,17 @@
+---
+
+region: ap-northeast-2
+asg_name: project3-auto-group
+lt_name: project3-target-group
+target_group_name: project3-petclinic-tg
+
+
+desired_capacity: 2
+min_size: 2
+max_size: 3
+
+
+vpc_name: project3-vpc
+private_subnet_names:
+  - project3-private-2a
+  - project3-private-2c

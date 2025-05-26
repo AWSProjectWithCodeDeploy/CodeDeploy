@@ -1,0 +1,105 @@
+- block:
+    - name: Get Target EC2 instance info(launch_template을 만들 EC2 정보 가져오기)
+      amazon.aws.ec2_instance_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ target_instance_name }}"
+          instance-state-name: running
+      register: target_ec2_info
+
+    - name: Look up security group IDs by name(보안그룹 이름을 이용하여 ID 가져오기)
+      amazon.aws.ec2_group_info:
+        region: "{{ region }}"
+        filters:
+          "group-name": "{{ launch_security_group_names }}"
+      register: sg_lookup_result
+
+    - name: Set security group IDs from lookup result(가져온 정보를 fact로 지정하기)
+      set_fact:
+        launch_security_group_ids: "{{ sg_lookup_result.security_groups | map(attribute='group_id') | list }}"
+
+    - name: Check if AMI already exists(이미 있는 이미지인지 체크하기)
+      amazon.aws.ec2_ami_info:
+        region: "{{ region }}"
+        filters:
+          name: "{{ launch_ami_name }}"
+          state: available
+      register: existing_ami_info
+
+    - name: Create AMI from Target EC2 instance(EC2를 이용한 이미지 만들기)
+      amazon.aws.ec2_ami:
+        instance_id: "{{ target_ec2_info.instances[0].instance_id }}"
+        name: "{{ launch_ami_name }}"
+        region: "{{ region }}"
+        wait: true
+        state: present
+        tags:
+          Name: "{{ launch_ami_name }}"
+      register: launch_ami
+      when: existing_ami_info.images | length == 0
+
+    - name: Set AMI ID from existing or newly created AMI
+      set_fact:
+        ami_id: "{{ launch_ami.image_id | default(existing_ami_info.images[0].image_id) }}"
+
+    - name: Create Launch Template(EC2 정보를 토대로 launch_template 만들기)
+      amazon.aws.ec2_launch_template:
+        name: "{{ launch_template_name }}"
+        region: "{{ region }}"
+        image_id: "{{ ami_id }}"
+        instance_type: "{{ launch_instance_type }}"
+        iam_instance_profile: "{{ launch_iam_instance_profile }}"
+        network_interfaces:
+          - device_index: 0
+            associate_public_ip_address: false
+            groups: "{{ launch_security_group_ids }}"
+        tags:
+          Name: "{{ launch_ami_name }}"
+        state: present
+
+  when: launch_template_state == "present"
+
+- block:
+    - name: Get Launch Template info (launch_template 정보를 추출)
+      amazon.aws.ec2_launch_template_info:
+        region: "{{ region }}"
+        filters:
+          launch-template-name: "{{ launch_template_name }}"
+      register: lt_info
+
+    - name: Get AMI ID and Snapshot ID from AMI name(스냅샷 ID 추출을 위하여 AMI 이미지를 통한 정보 추출)
+      amazon.aws.ec2_ami_info:
+        region: "{{ region }}"
+        filters:
+          name: "{{ launch_ami_name }}"
+          state: available
+      register: existing_ami_info
+      when: launch_ami_name is defined
+
+    - name: Set AMI and Snapshot ID from AMI info(AMI와 Snapshot ID를 FACT로 지정)
+      set_fact:
+        ami_id: "{{ existing_ami_info.images[0].image_id }}"
+        snapshot_id: "{{ existing_ami_info.images[0].block_device_mappings[0].ebs.snapshot_id }}"
+      when: existing_ami_info.images | length > 0
+
+    - name: Delete Launch Template(launch_template 삭제)
+      amazon.aws.ec2_launch_template:
+        name: "{{ launch_template_name }}"
+        region: "{{ region }}"
+        state: absent
+
+    - name: Delete AMI(AMI 이미지 삭제)
+      amazon.aws.ec2_ami:
+        image_id: "{{ ami_id }}"
+        region: "{{ region }}"
+        state: absent
+      when: ami_id is defined
+
+    - name: Delete EBS Snapshot(Snapshot 이미지 삭제)
+      amazon.aws.ec2_snapshot:
+        snapshot_id: "{{ snapshot_id }}"
+        region: "{{ region }}"
+        state: absent
+      when: snapshot_id is defined
+
+  when: launch_template_state == "absent"

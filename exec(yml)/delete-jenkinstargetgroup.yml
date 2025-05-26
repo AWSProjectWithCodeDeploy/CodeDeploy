@@ -1,0 +1,14 @@
+- name: Jenkins Target Group Creation
+  hosts: localhost
+  
+  connection: ssh
+  gather_facts: no
+
+  vars_files:
+    - ../Target-Group-Jenkins/vars/vars.yml
+
+  roles:
+    - Target-Group-Jenkins
+
+  vars:
+    jenkins_tg_state: "absent"

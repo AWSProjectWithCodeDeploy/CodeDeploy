@@ -1,0 +1,16 @@
+---
+
+region: ap-northeast-2
+alb_name: project3-alb
+alb_listener_port: 80
+
+
+vpc_name: project3-vpc
+sg_alb_name: [ "Project3-HTTP-Accept", "Project3-Jenkins-Accept" ]
+
+
+health_check_path: "/"
+health_check_protocol: HTTP
+
+
+

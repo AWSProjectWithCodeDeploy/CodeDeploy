@@ -1,0 +1,17 @@
+{
+  "Comment": "Create alias record for Jenkins",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "{{ jenkins_domain }}",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "{{ alb_info.load_balancers[0].canonical_hosted_zone_id }}",
+          "DNSName": "{{ alb_info.load_balancers[0].dns_name }}",
+          "EvaluateTargetHealth": false
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+---
+- block:
+    - name: CodeDeploy 애플리케이션 생성 (project3-application)
+      command: >
+        aws deploy create-application
+        --application-name project3-application
+        --compute-platform Server
+        --region {{ region }}
+      register: create_app_result
+      changed_when: "'applicationId' in create_app_result.stdout"
+
+    - name: CodeDeploy 배포 그룹 생성 (project3-production-in-place)
+      command: >
+        aws deploy create-deployment-group
+        --application-name project3-application
+        --deployment-group-name project3-production-in-place
+        --deployment-config-name CodeDeployDefault.OneAtATime
+        --deployment-style deploymentType=IN_PLACE,deploymentOption=WITH_TRAFFIC_CONTROL
+        --load-balancer-info targetGroupInfoList=[{name=project3-petclinic-tg}]
+        --auto-scaling-groups project3-auto-group
+        --service-role-arn arn:aws:iam::{{ aws_account_id }}:role/project3-code-deploy-role
+        --region {{ region }}
+      environment:
+        AWS_DEFAULT_REGION: "{{ region }}"
+      register: create_deployment_group_result
+      changed_when: "'deploymentGroupId' in create_deployment_group_result.stdout"
+      failed_when: "create_deployment_group_result.rc != 0 and 'already exists' not in create_deployment_group_result.stderr"
+
+  when: state == "present" 
+
+
+- block:
+    - name: CodeDeploy 배포 그룹 삭제 (project3-production-in-place)
+      command: >
+        aws deploy delete-deployment-group
+        --application-name project3-application
+        --deployment-group-name project3-production-in-place
+        --region {{ region }}
+      environment:
+        AWS_DEFAULT_REGION: "{{ region }}"
+      register: delete_deployment_group_result
+      changed_when: "delete_deployment_group_result.rc == 0"
+      failed_when: "delete_deployment_group_result.rc != 0 and 'does not exist' not in delete_deployment_group_result.stderr"
+  
+    - name: CodeDeploy 애플리케이션 삭제 (project3-application)
+      command: >
+        aws deploy delete-application
+        --application-name project3-application
+        --region {{ region }}
+      register: delete_app_result
+
+    - name: 삭제 결과 출력
+      debug:
+        var: delete_app_result.stdout
+
+  when: state == "delete"  

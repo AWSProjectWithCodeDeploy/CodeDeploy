@@ -1,0 +1,10 @@
+- name: Delete IAM Role for CodeDeploy
+  hosts: localhost
+
+  vars_files:
+    - ../Codedeploy-Role/vars/vars.yml
+  vars:
+    iam_role_state: "absent"
+
+  roles:
+    - Codedeploy-Role

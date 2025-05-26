@@ -1,0 +1,10 @@
+---
+region: ap-northeast-2
+target_instance_name: project3-Target-EC2
+launch_ami_name: project3-ami
+launch_template_name: project3-target-group
+launch_template_tag_name: project3-target-template
+launch_instance_type: t2.micro
+launch_security_group_names: ["Project3-Jenkins-Accept", "Project3-HTTP-Accept", "Project3-SSH-Accept" ]
+launch_iam_instance_profile: project3-code-deploy-ec2-profile
+

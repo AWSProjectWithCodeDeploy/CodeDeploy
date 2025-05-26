@@ -1,0 +1,64 @@
+---
+- block:
+    - name: Get VPC info(VPC 정보 Import)
+      amazon.aws.ec2_vpc_net_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ vpc_name }}"
+      register: vpc_info
+      
+    - name: Get Target Group ARN using CLI(AWS CLI를 이용한 Target Group ARN 가져오기)
+      ansible.builtin.shell: |
+        aws elbv2 describe-target-groups \
+          --names "{{ target_group_name }}" \
+          --region "{{ region }}" \
+          --query "TargetGroups[0].TargetGroupArn" \
+          --output text
+      register: target_group_arn_raw
+
+    - name: Set Target Group ARN(AWS CLI를 이용한 Target Group ARN을 fact로 변환)
+      when: target_group_arn_raw.stdout != ""
+      set_fact:
+        tg_arn: "{{ target_group_arn_raw.stdout }}"
+
+    - name: Get private subnet IDs(프라이빗 서브넷 ID 가져오기)
+      amazon.aws.ec2_vpc_subnet_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ item }}"
+          vpc-id: "{{ vpc_info.vpcs[0].vpc_id }}"
+      with_items: "{{ private_subnet_names }}"
+      register: subnet_results
+
+    - name: Set subnet_ids fact(서브넷 ID를 fact로 변환)
+      when: subnet_results.results | length > 0
+      set_fact:
+        subnet_ids: >-
+          {{ subnet_results.results | map(attribute='subnets') | map('first') | map(attribute='id') | list }}
+
+- name: Create Auto Scaling Group for Spring-PetClinic(Spring-PetClinic용 Auto Scaling Group 생성)
+  amazon.aws.autoscaling_group:
+    name: "{{ asg_name }}"
+    desired_capacity: "{{ desired_capacity }}"
+    min_size: "{{ min_size }}"
+    max_size: "{{ max_size }}"
+    vpc_zone_identifier: "{{ subnet_ids }}"
+    target_group_arns:
+      - "{{ tg_arn }}"
+    launch_template:
+      launch_template_name: "{{ lt_name }}"
+      version: "$Latest"
+    region: "{{ region }}"
+    state: present
+    tags:
+      - Name: "{{ asg_name }}"
+  when: asg_state == "present"
+
+- block:
+    - name: Delete Auto Scaling Group (조건에 의한 Auto Scaling Group 삭제)
+      amazon.aws.autoscaling_group:
+        name: "{{ asg_name }}"
+        region: "{{ region }}"
+        state: absent
+      register: delete_asg_result
+  when: asg_state == "absent"

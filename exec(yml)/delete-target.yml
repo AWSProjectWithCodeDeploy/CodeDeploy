@@ -1,0 +1,11 @@
+- name: Target EC2 삭제
+  hosts: localhost
+
+  vars_files:
+    - ../Target-EC2/vars/vars.yml
+
+  vars:
+    EC2_state: "absent"
+
+  roles:
+    - Target-EC2

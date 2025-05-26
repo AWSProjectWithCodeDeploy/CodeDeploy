@@ -1,0 +1,9 @@
+---
+# vars file for PetClinic EC2
+region: ap-northeast-2
+key_name: project3-key
+instance_type: t2.micro
+ami_id: ami-05a7f3469a7653972   # Ubuntu 22.04 LTS
+security_groups: [ "Project3-Jenkins-Accept", "Project3-HTTP-Accept", "Project3-SSH-Accept" ]
+instance_name: project3-petclinic-ec2
+

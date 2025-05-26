@@ -1,46 +1,42 @@
 ---
-- name: 공통 AWS 리소스 정보 조회
+- name: AWS 리소스 정보 조회 (region 변수 기준, VPC/서브넷/IGW/NAT Gateway 정보 조회)
   block:
-    - name: Get VPC info (project3-vpc)
+    - name: Get VPC info (project3-vpc) (VPC 정보 조회)
       amazon.aws.ec2_vpc_net_info:
         region: "{{ region }}"
         filters:
           "tag:Name": project3-vpc
       register: vpc_info
 
-    - name: Set VPC ID fact
+    - name: Set VPC ID fact (VPC ID 변수 설정)
       set_fact:
         vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
-      when: vpc_info.vpcs | length > 0
 
-    - name: Get subnet info
+    - name: Get subnet info (서브넷 정보 조회)
       amazon.aws.ec2_vpc_subnet_info:
         region: "{{ region }}"
         filters:
           vpc-id: "{{ vpc_id }}"
       register: subnet_info
-      when: vpc_id is defined
 
-    - name: Get IGW info
+    - name: Get IGW info (IGW 정보 조회)
       amazon.aws.ec2_vpc_igw_info:
         region: "{{ region }}"
         filters:
           attachment.vpc-id: "{{ vpc_id }}"
       register: igw_info
-      when: vpc_id is defined
 
-    - name: Get NAT Gateway info
+    - name: Get NAT Gateway info (NAT Gateway 정보 조회)
       amazon.aws.ec2_vpc_nat_gateway_info:
         region: "{{ region }}"
         filters:
           vpc-id: "{{ vpc_id }}"
       register: natgw_info
-      when: vpc_id is defined
 
-- name: VPC Route Table 생성 (VPC_RT == "present")
-  when: VPC_RT == "present" and vpc_id is defined
+- name: VPC Route Table 생성 (라우트 테이블 생성 및 구성)
+  when: VPC_RT == "present"
   block:
-    - name: Create and configure public route table (project3-public-rt)
+    - name: Create and configure public route table (project3-public-rt) (퍼블릭 라우트 테이블 생성 및 서브넷 연결)
       amazon.aws.ec2_vpc_route_table:
         vpc_id: "{{ vpc_id }}"
         region: "{{ region }}"
@@ -56,12 +52,8 @@
         purge_routes: true
         purge_subnets: true
         purge_tags: true
-      when:
-        - subnet_info.subnets | selectattr('tags.Name', 'equalto', 'project3-public-2c') | list | length > 0
-        - subnet_info.subnets | selectattr('tags.Name', 'equalto', 'project3-public-2a') | list | length > 0
-        - igw_info.internet_gateways | length > 0
-
-    - name: Create and configure private route table 1 (project3-private-rtb-1)
+    
+    - name: Create and configure private route table 1 (project3-private-rtb-1) (프라이빗 라우트 테이블 1 생성 및 NAT Gateway 연결)
       amazon.aws.ec2_vpc_route_table:
         vpc_id: "{{ vpc_id }}"
         region: "{{ region }}"
@@ -76,11 +68,8 @@
         purge_routes: true
         purge_subnets: true
         purge_tags: true
-      when:
-        - subnet_info.subnets | selectattr('tags.Name', 'equalto', 'project3-private-2a') | list | length > 0
-        - natgw_info.result | length > 0
-
-    - name: Create and configure private route table 2 (project3-private-rtb-2)
+    
+    - name: Create and configure private route table 2 (project3-private-rtb-2) (프라이빗 라우트 테이블 2 생성 및 NAT Gateway 연결)
       amazon.aws.ec2_vpc_route_table:
         vpc_id: "{{ vpc_id }}"
         region: "{{ region }}"
@@ -95,14 +84,11 @@
         purge_routes: true
         purge_subnets: true
         purge_tags: true
-      when:
-        - subnet_info.subnets | selectattr('tags.Name', 'equalto', 'project3-private-2c') | list | length > 0
-        - natgw_info.result | length > 0
 
-- name: VPC Route Table 삭제 (VPC_RT == "absent")
-  when: VPC_RT == "absent" and vpc_id is defined
+- name: VPC Route Table 삭제 (라우트 테이블 및 연결된 리소스 삭제)
+  when: VPC_RT == "absent"
   block:
-    - name: 삭제할 라우트 테이블 정보 가져오기 (태그 이름으로)
+    - name: 삭제할 라우트 테이블 정보 가져오기 (태그 이름으로) (삭제 대상 라우트 테이블 조회)
       amazon.aws.ec2_vpc_route_table_info:
         region: "{{ region }}"
         filters:
@@ -113,7 +99,7 @@
             - project3-private-rtb-2
       register: rtbs_to_delete_info
 
-    - name: 각 라우트 테이블의 서브넷 연결 해제
+    - name: 각 라우트 테이블의 서브넷 연결 해제 (서브넷과의 라우트 테이블 연결 해제)
       amazon.aws.ec2_vpc_route_table:
         state: absent
         region: "{{ region }}"
@@ -126,7 +112,7 @@
       when: item.associations is defined and (item.associations | selectattr('association_state.state', 'equalto', 'associated') | list | length > 0)
       ignore_errors: yes
 
-    - name: 각 라우트 테이블의 모든 라우트 삭제
+    - name: 각 라우트 테이블의 모든 라우트 삭제 (라우트 테이블 내 라우트 삭제)
       amazon.aws.ec2_vpc_route_table:
         state: absent
         region: "{{ region }}"
@@ -141,7 +127,7 @@
       when: item.routes is defined and item.routes | length > 0
       ignore_errors: yes
 
-    - name: 라우트 테이블 삭제 (이름으로 개별 처리)
+    - name: 라우트 테이블 삭제 (이름으로 개별 처리) (라우트 테이블 리소스 삭제)
       amazon.aws.ec2_vpc_route_table:
         region: "{{ region }}"
         vpc_id: "{{ vpc_id }}"
@@ -154,5 +140,3 @@
         - project3-private-rtb-2
       loop_control:
         label: "라우트 테이블 삭제: {{ item }}"
-      when: (rtbs_to_delete_info.route_tables | selectattr('tags.Name', 'equalto', item) | list) | length > 0
-      ignore_errors: yes

@@ -1,0 +1,20 @@
+region: "ap-northeast-2"
+key: "project3-key"
+
+# VPC 및 CIDR 블록
+cidr_block: "10.3.0.0/16"
+vpc_id: "vpc-09c43d597b90bb970"
+
+# 퍼블릭 서브넷 CIDR
+public_subnet_1_cidr: "10.3.0.0/20"
+public_subnet_2_cidr: "10.3.16.0/20"
+
+# 프라이빗 서브넷 CIDR
+private_subnet_1_cidr: "10.3.64.0/20"
+private_subnet_2_cidr: "10.3.80.0/20"
+
+# CodeDeploy 애플리케이션 설정용
+codedeploy_app_name: "project3-application"
+codedeploy_compute_platform: "Server"
+
+

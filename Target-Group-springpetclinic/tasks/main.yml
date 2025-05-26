@@ -1,0 +1,101 @@
+---
+
+- block:
+    # VPC ID 조회
+    - name: Get VPC ID by tag name (VPC ID 태그명으로 조회)
+      amazon.aws.ec2_vpc_net_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ vpc_name }}"
+      register: vpc_info
+
+    # 타깃 그룹 생성
+    - name: Create PetClinic Target Group (PetClinic 타깃 그룹 생성)
+      command: >
+        aws elbv2 create-target-group
+        --name {{ petclinic_tg_name }}
+        --protocol HTTP
+        --port 80
+        --vpc-id {{ vpc_info.vpcs[0].vpc_id }}
+        --target-type instance
+        --health-check-protocol HTTP
+        --health-check-port 80
+        --health-check-path /actuator/health
+        --tags Key=Name,Value={{ petclinic_tg_name }}
+        --region {{ region }}
+      register: petclinic_tg_result
+
+    # 타깃 그룹 ARN 조회 및 설정
+    - name: Extract PetClinic Target Group ARN (PetClinic 타깃 그룹 ARN 조회)
+      shell: >
+        aws elbv2 describe-target-groups --names {{ petclinic_tg_name }} --region {{ region }}
+      register: petclinic_tg_desc
+
+    - name: Set PetClinic Target Group ARN (PetClinic 타깃 그룹 ARN 설정)
+      set_fact:
+        petclinic_target_group_arn: >-
+          {{ (petclinic_tg_desc.stdout | from_json).TargetGroups[0].TargetGroupArn if (petclinic_tg_desc.stdout | from_json).TargetGroups | length > 0 else '' }}
+
+    - name: Save PetClinic Target Group ARN to file (PetClinic 타깃 그룹 ARN 파일 저장)
+      copy:
+        content: "{{ petclinic_target_group_arn }}"
+        dest: "{{ petclinic_tg_output_file }}"
+
+    # EC2 인스턴스 ID 조회 및 설정
+    - name: Get PetClinic EC2 instance ID by tag (PetClinic EC2 인스턴스 ID 태그명으로 조회)
+      amazon.aws.ec2_instance_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ petclinic_instance_name }}"
+      register: petclinic_instance_info
+
+    - name: Set PetClinic instance ID (PetClinic 인스턴스 ID 설정)
+      set_fact:
+        petclinic_instance_id: >-
+          {{ petclinic_instance_info.instances[0].instance_id if petclinic_instance_info.instances | length > 0 else '' }}
+
+    # 타깃 그룹에 인스턴스 등록
+    - name: Register PetClinic instance to target group (PetClinic 인스턴스를 타깃 그룹에 등록)
+      command: >
+        aws elbv2 register-targets
+        --target-group-arn {{ petclinic_target_group_arn }}
+        --targets Id={{ petclinic_instance_id }}
+        --region {{ region }}
+      register: register_targets_result
+  when: petclinic_tg_state == 'present'
+
+# 삭제 분기
+- block:
+    # ALB ARN 조회
+    - name: Get ALB ARN by name (ALB 이름으로 ARN 조회)
+      command: >
+        aws elbv2 describe-load-balancers
+        --names {{ alb_name }}
+        --region {{ region }}
+      register: alb_info
+ 
+    # ALB ARN 설정
+    - name: Set ALB ARN (ALB ARN 설정)
+      set_fact:
+        alb_arn: "{{ (alb_info.stdout | default('{}') | from_json).LoadBalancers[0].LoadBalancerArn }}"
+
+    # 타깃 그룹 ARN 조회
+    - name: Get PetClinic Target Group ARN (PetClinic 타깃 그룹 ARN 조회)
+      command: >
+        aws elbv2 describe-target-groups
+        --names {{ petclinic_tg_name }}
+        --region {{ region }}
+      register: petclinic_tg_info
+
+    # 타깃 그룹 ARN 설정
+    - name: Set PetClinic Target Group ARN (PetClinic 타깃 그룹 ARN 설정)
+      set_fact:
+        petclinic_target_group_arn: "{{ (petclinic_tg_info.stdout | default('{}') | from_json).TargetGroups[0].TargetGroupArn }}"
+
+    # 타깃 그룹 삭제
+    - name: Delete PetClinic Target Group (PetClinic 타깃 그룹 삭제)
+      command: >
+        aws elbv2 delete-target-group
+        --target-group-arn {{ petclinic_target_group_arn }}
+        --region {{ region }}
+  when: petclinic_tg_state == 'absent'

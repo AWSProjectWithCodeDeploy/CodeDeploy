@@ -1,0 +1,13 @@
+---
+- name: Delete ALB and related resources
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../ALB/vars/vars.yml   
+
+  vars:
+    alb_state: absent     
+
+  roles:
+    - ALB  # 롤 이름은 "VPC"

@@ -1,0 +1,10 @@
+- hosts: localhost
+
+  vars_files:
+    - ../VPC_SUB/vars/vars.yml
+
+  vars:
+    vpc_subnet_state: "absent"  
+
+  roles:
+    - VPC_SUB

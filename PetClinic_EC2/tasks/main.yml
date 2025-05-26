@@ -1,0 +1,80 @@
+- block:
+    - name: Get VPC info(VPC 정보 추출)
+      amazon.aws.ec2_vpc_net_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": project3-vpc
+      register: vpc_info
+
+    - name: Get PetClinic private subnet info(private 서브넷 정보 추출)
+      amazon.aws.ec2_vpc_subnet_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": project3-private-2a
+          vpc-id: "{{ vpc_info.vpcs[0].vpc_id }}"
+      register: subnet_info
+
+    - name: Launch PetClinic EC2 instance(petclinic EC2 생성)
+      amazon.aws.ec2_instance:
+        name: "{{ instance_name }}"
+        key_name: "{{ key_name }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ ami_id }}"
+        region: "{{ region }}"
+        vpc_subnet_id: "{{ subnet_info.subnets[0].subnet_id }}"
+        security_groups: "{{ security_groups }}"
+        user_data: "{{ lookup('file', 'files/userdata.sh') }}"
+        network:
+          assign_public_ip: false
+        wait: true
+        count: 1
+        volumes:
+          - device_name: /dev/sda1
+            ebs:
+              volume_size: 25
+              delete_on_termination: true
+              volume_type: gp2
+      register: ec2_info
+
+    - name: Wait for PetClinic port 8080 availability(userdata.sh이 실행되어 petclinic 서비스가 활성화 될때 까지 대기)
+      ansible.builtin.wait_for:
+        host: "{{ ec2_info.instances[0].private_ip_address }}"
+        port: 8080
+        state: started
+        timeout: 20
+      register: wait_petclinic_check
+      retries: 18
+      delay: 10
+      until: wait_petclinic_check.elapsed is defined and wait_petclinic_check.elapsed < 20
+
+    - name: Set fact if PetClinic is ready
+      ansible.builtin.set_fact:
+        petclinic_ready: true
+      when: wait_petclinic_check.elapsed is defined and wait_petclinic_check.elapsed < 20
+
+    - name: Print PetClinic access info(petclinic 실행 정보 출력)
+      ansible.builtin.debug:
+        msg: |
+          =============================================
+          ✅ PetClinic is now running and registered.
+          You can access it through the ALB:
+          http://<your-alb-domain>/petclinic
+          =============================================
+  when: EC2_state == "present"
+
+- block:
+    - name: Get PetClinic EC2 instance info(EC2 정보 추출)
+      amazon.aws.ec2_instance_info:
+        region: "{{ region }}"
+        filters:
+          tag:Name: "{{ instance_name }}"
+          instance-state-name: running
+      register: petclinic_ec2_info
+
+    - name: Terminate PetClinic EC2 instance(추출한 조건 대로 삭제)
+      amazon.aws.ec2_instance:
+        instance_ids: "{{ petclinic_ec2_info.instances | map(attribute='instance_id') | list }}"
+        region: "{{ region }}"
+        state: absent
+        wait: true
+  when: EC2_state == "absent"

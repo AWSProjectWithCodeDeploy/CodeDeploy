@@ -1,0 +1,9 @@
+---
+# vars file for Target-Group-springpetclinic
+
+region: ap-northeast-2
+vpc_name: project3-vpc
+petclinic_tg_name: project3-petclinic-tg
+petclinic_tg_output_file: /tmp/project3-petclinic-tg-arn.txt
+alb_name: project3-alb
+petclinic_instance_name: project3-Target-EC2

@@ -1,43 +1,22 @@
 ---
 
-- name: AWS S3 버킷 생성 및 설정 (UI 기반 구성)
+- name: AWS S3 버킷 생성 및 설정 (조건에 의한 S3 버킷 생성 및 설정)
   amazon.aws.s3_bucket:
-    name: "{{ s3_bucket_name }}"
-    region: "{{ region }}"
-  
-    # 1. 객체 소유권 (Object Ownership)
-    # UI의 "ACL 비활성화됨(권장)"은 "BucketOwnerEnforced"에 해당합니다.
-    # "ACL 활성화됨"은 "ObjectWriter" 또는 "BucketOwnerPreferred"에 해당합니다.
-    # 여기서는 UI의 "ACL 비활성화됨(권장)" -> "버킷 소유자 적용"을 따릅니다.
-    object_ownership: "BucketOwnerEnforced"
-
-    # 2. 이 버킷의 퍼블릭 액세스 차단 설정 (Public Access Block)
-    # UI의 "모든 퍼블릭 액세스 차단"을 활성화한 것에 해당합니다.
-    public_access:
+    state: present #생성
+    name: "{{ s3_bucket_name }}" # 생성할 버킷 이름
+    region: "{{ region }}" #리전 위치
+    object_ownership: "BucketOwnerEnforced" # 객체 소유권 설정
+    versioning: no # 버전 관리 설정
+    encryption: "AES256" # 암호화 설정
+    public_access: # 퍼블릭 액세스 설정
       block_public_acls: true
       ignore_public_acls: true
       block_public_policy: true
       restrict_public_buckets: true
-
-    # 3. 버킷 버전 관리 (Bucket Versioning)
-    # UI의 "활성화"에 해당합니다.
-    versioning: true
-
-    # 4. 태그 (Tags)
     tags:
-      Name: project3_bucket # 예시 태그. 필요에 따라 추가/수정
-
-    # 5. 기본 암호화 (Default Encryption)
-    # UI의 "Amazon S3 관리형 키(SSE-S3)를 사용한 서버 측 암호화"에 해당
-    encryption: "AES256"
-    # encryption: "aws:kms" # AWS KMS 키를 사용한 서버 측 암호화 (선택 시)
-    # encryption_key_id: "arn:aws:kms:{{ s3_bucket_region }}:123456789012:key/your-kms-key-id" # SSE-KMS 선택 시 KMS 키 ID
-
-    # 참고: UI에 없는 추가 설정은 `defaults/main.yml`에서 관리
-
-  # `S3_BUCKET_STATE` 변수에 따라 태스크가 실행되도록 조건 설정
-  when: S3_BUCKET_STATE == "present" 
-
+      Name: project3_bucket # S3 테그 이름
+  when: S3_BUCKET_STATE == "present"  # 실행 플레이북 조건이 "present"일 때만 실행
+  
 - name: AWS S3 버킷 삭제
   amazon.aws.s3_bucket:
     name: "{{ s3_bucket_name }}"

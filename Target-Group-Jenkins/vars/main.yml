@@ -1,0 +1,10 @@
+---
+# vars file for Target-Group-Jenkins
+
+region: ap-northeast-2
+vpc_name: project3-vpc
+jenkins_tg_name: project3-jenkins-tg
+jenkins_tg_output_file: /tmp/project3-jenkins-tg-arn.txt
+alb_name: project3-alb
+jenkins_instance_name: project3-jenkins-ec2
+jenkins_sg_name: Project3-Jenkins-Accept

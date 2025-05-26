@@ -1,0 +1,10 @@
+- hosts: localhost
+
+  vars_files:
+    - ../KEYGEN/vars/vars.yml
+    
+  vars:
+    key_state: "absent"
+    
+  roles:
+    - KEYGEN

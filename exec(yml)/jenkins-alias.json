@@ -1,0 +1,17 @@
+{
+  "Comment": "Create alias record for Jenkins",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "project3.jenkins.jinlabs.net",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "ZWKZPGTI48KDX",
+          "DNSName": "project3-alb-886403138.ap-northeast-2.elb.amazonaws.com",
+          "EvaluateTargetHealth": false
+        }
+      }
+    }
+  ]
+}

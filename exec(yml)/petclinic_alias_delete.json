@@ -1,0 +1,17 @@
+{
+  "Comment": "Delete alias record for PetClinic",
+  "Changes": [
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "project3.petclinic.jinlabs.net",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "ZWKZPGTI48KDX",
+          "DNSName": "project3-alb-53046815.ap-northeast-2.elb.amazonaws.com",
+          "EvaluateTargetHealth": false
+        }
+      }
+    }
+  ]
+}

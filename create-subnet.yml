@@ -1,8 +1,0 @@
-- hosts: localhost
-
-  vars_files:
-    - VPC_SUB/vars/vars.yml
-  vars:
-    vpc_subnet_state: "present"
-  roles:
-    - VPC_SUB

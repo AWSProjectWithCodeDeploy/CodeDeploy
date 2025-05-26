@@ -1,5 +1,6 @@
 ---
-- name: Get VPC info
+
+- name: Get VPC info(VPC 정보 조회)
   amazon.aws.ec2_vpc_net_info:
     region: "{{ region }}"
     filters:
@@ -7,91 +8,85 @@
   register: vpc_info
   when: vpc_subnet_state in ["present", "absent"]
 
-- name: Create public subnet in ap-northeast-2a
-  amazon.aws.ec2_vpc_subnet:
-    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
-    cidr: 10.3.0.0/20
-    az: ap-northeast-2a
-    region: "{{ region }}"
-    map_public: true
-    tags:
-      Name: project3-public-2a
-  register: subnet_result
+- block:
+    - name: Create public subnet in ap-northeast-2a(ap-northeast-2a에 퍼블릭 서브넷 생성)
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+        cidr: 10.3.0.0/20
+        az: ap-northeast-2a
+        region: "{{ region }}"
+        map_public: true
+        tags:
+          Name: project3-public-2a
+      register: subnet_result
+
+    - name: Create public subnet in ap-northeast-2c(ap-northeast-2c에 퍼블릭 서브넷 생성)
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+        cidr: 10.3.16.0/20
+        az: ap-northeast-2c
+        region: "{{ region }}"
+        map_public: true
+        tags:
+          Name: project3-public-2c
+      register: subnet_result
+
+    - name: Create private subnet in ap-northeast-2a(ap-northeast-2a에 프라이빗 서브넷 생성)
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+        cidr: 10.3.64.0/20
+        az: ap-northeast-2a
+        region: "{{ region }}"
+        map_public: false
+        tags:
+          Name: project3-private-2a
+      register: subnet_result
+
+    - name: Create private subnet in ap-northeast-2c(ap-northeast-2c에 프라이빗 서브넷 생성)
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+        cidr: 10.3.80.0/20
+        az: ap-northeast-2c
+        region: "{{ region }}"
+        map_public: false
+        tags:
+          Name: project3-private-2c
+      register: subnet_result
+
   when: vpc_subnet_state == "present"
 
-- name: Create public subnet in ap-northeast-2c
-  amazon.aws.ec2_vpc_subnet:
-    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
-    cidr: 10.3.16.0/20
-    az: ap-northeast-2a
-    region: "{{ region }}"
-    map_public: true
-    tags:
-      Name: project3-public-2c
-  register: subnet_result
-  when: vpc_subnet_state == "present"
+- block:
+    - name: Delete public subnet in ap-northeast-2a(ap-northeast-2a에 퍼블릭 서브넷 삭제)
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+        cidr: 10.3.0.0/20
+        az: ap-northeast-2a
+        region: "{{ region }}"
+        state: absent
 
-- name: Create private subnet in ap-northeast-2a
-  amazon.aws.ec2_vpc_subnet:
-    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
-    cidr: 10.3.64.0/20
-    az: ap-northeast-2a
-    region: "{{ region }}"
-    map_public: true
-    tags:
-      Name: project3-private-2a
-  register: subnet_result
-  when: vpc_subnet_state == "present"
+    - name: Delete public subnet in ap-northeast-2c(ap-northeast-2c에 퍼블릭 서브넷 삭제)
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+        cidr: 10.3.16.0/20
+        az: ap-northeast-2c
+        region: "{{ region }}"
+        state: absent
 
-- name: Create private subnet in ap-northeast-2c
-  amazon.aws.ec2_vpc_subnet:
-    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
-    cidr: 10.3.80.0/20
-    az: ap-northeast-2a
-    region: "{{ region }}"
-    map_public: true
-    tags:
-      Name: project3-private-2c
-  register: subnet_result
-  when: vpc_subnet_state == "present"
+    - name: Delete private subnet in ap-northeast-2a(ap-northeast-2a에 프라이빗 서브넷 삭제)
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+        cidr: 10.3.64.0/20
+        az: ap-northeast-2a
+        region: "{{ region }}"
+        state: absent
 
-- name: Delete public subnet in ap-northeast-2a
-  amazon.aws.ec2_vpc_subnet:
-    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
-    cidr: 10.3.0.0/20
-    az: ap-northeast-2a
-    region: "{{ region }}"
-    state: absent
+    - name: Delete private subnet in ap-northeast-2c(ap-northeast-2c에 프라이빗 서브넷 삭제)
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
+        cidr: 10.3.80.0/20
+        az: ap-northeast-2c
+        region: "{{ region }}"
+        state: absent
+
   when: vpc_subnet_state == "absent"
 
-- name: Delete public subnet in ap-northeast-2c
-  amazon.aws.ec2_vpc_subnet:
-    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
-    cidr: 10.3.16.0/20
-    az: ap-northeast-2c
-    region: "{{ region }}"
-    state: absent
-  when: vpc_subnet_state == "absent"
-
-- name: Delete private subnet in ap-northeast-2a
-  amazon.aws.ec2_vpc_subnet:
-    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
-    cidr: 10.3.64.0/20
-    az: ap-northeast-2a
-    region: "{{ region }}"
-    state: absent
-  when: vpc_subnet_state == "absent"
-
-- name: Delete private subnet in ap-northeast-2c
-  amazon.aws.ec2_vpc_subnet:
-    vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
-    cidr: 10.3.80.0/20
-    az: ap-northeast-2c
-    region: "{{ region }}"
-    state: absent
-  when: vpc_subnet_state == "absent"
-
-- name: Debug Subnet Info
-  ansible.builtin.debug:
-    var: subnet_result
-  when: vpc_subnet_state == "present"

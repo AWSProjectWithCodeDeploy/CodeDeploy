@@ -1,0 +1,11 @@
+---
+
+- hosts: localhost
+
+  vars_files:
+    - ../VPC/vars/vars.yml
+  vars:
+    vpc_state: "present"  # VPC 생성
+
+  roles:
+    - VPC  # 롤 이름은 "VPC"

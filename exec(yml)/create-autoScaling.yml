@@ -1,0 +1,17 @@
+---
+- name: Create Auto Scaling Group for Spring-PetClinic
+  hosts: localhost
+  gather_facts: false
+
+  collections:
+    - amazon.aws
+
+  vars_files:
+    - ../AutoScaling/vars/vars.yml   # 🔧 실제 위치에 따라 경로 조정 필요
+
+  vars:
+    asg_state: present
+
+  roles:
+    - role: AutoScaling
+

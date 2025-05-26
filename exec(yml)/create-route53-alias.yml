@@ -1,0 +1,16 @@
+---
+- name: Create Alias Record
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  collections:
+    - amazon.aws
+    - community.aws
+
+  roles:
+    - route53_alias
+
+  vars_files:
+    - ../route53_alias/vars/vars.yml
+  vars:
+    alias_state: present

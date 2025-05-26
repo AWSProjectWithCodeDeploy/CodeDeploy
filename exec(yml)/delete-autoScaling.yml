@@ -1,0 +1,14 @@
+---
+- name: Delete Auto Scaling Group for Spring-PetClinic
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../AutoScaling/vars/vars.yml   # 🔧 실제 위치에 맞게 경로 조정
+
+  vars:
+    asg_state: absent
+
+  roles:
+    - AutoScaling
+

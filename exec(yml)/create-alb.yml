@@ -1,0 +1,17 @@
+- name: Create ALB
+  hosts: localhost
+  gather_facts: false
+  
+  collections:
+    - community.aws 
+
+  vars_files:
+    - ../ALB/vars/vars.yml  
+    
+  vars:
+    alb_state: present
+  
+  roles:
+    - role: ALB
+  
+

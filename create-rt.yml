@@ -1,9 +1,0 @@
-- hosts: localhost
-  gather_facts: false
-
-  vars_files:
-    - VPC_RT/vars/vars.yml
-  vars:
-    VPC_RT: "present"
-  roles:
-    - VPC_RT

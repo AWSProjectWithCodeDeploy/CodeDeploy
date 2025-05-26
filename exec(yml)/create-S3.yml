@@ -1,0 +1,13 @@
+- name: Create Amazon S3 bucket
+  hosts: localhost
+
+  vars_files:
+    - ../AWS-S3/vars/vars.yml
+
+  vars:
+    S3_BUCKET_STATE: "present"
+
+  roles:
+    - AWS-S3
+
+

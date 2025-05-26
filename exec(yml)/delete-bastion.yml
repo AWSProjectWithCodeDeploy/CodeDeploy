@@ -1,0 +1,10 @@
+- hosts: localhost
+
+  vars_files:
+    - ../Bastion-EC2/vars/vars.yml
+
+  vars:
+    ec2_instance_state: absent
+
+  roles:
+    - Bastion-EC2

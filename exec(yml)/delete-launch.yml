@@ -1,0 +1,10 @@
+- hosts: localhost
+
+  vars_files:
+    - ../Launch-Template/vars/vars.yml
+
+  roles:
+    - Launch-Template
+
+  vars:
+    launch_template_state: "absent"

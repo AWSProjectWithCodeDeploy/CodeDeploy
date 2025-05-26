@@ -1,0 +1,10 @@
+- hosts: localhost
+
+  vars_files:
+    - ../IAM-Role-EC2/vars/vars.yml
+
+  vars:
+    ec2_state: "present"
+    
+  roles:
+    - IAM-Role-EC2

@@ -1,0 +1,13 @@
+- hosts: localhost
+
+  vars_files:
+    - ../IAM-Role-EC2/vars/vars.yml
+  vars:
+    ec2_state: "absent"
+    
+  roles:
+    - IAM-Role-EC2
+
+# aws iam add-role-to-instance-profile \
+#   --instance-profile-name project3-code-deploy-ec2-role \
+#   --role-name project3-code-deploy-ec2-role

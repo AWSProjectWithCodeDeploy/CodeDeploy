@@ -1,45 +1,47 @@
 ---
-- name: Create IAM policy and role when EC2 is present
+- name: Create IAM policy and role when EC2 is present(IAM 정책 생성을 위한 EC2롤 생성)
   block:
     - name: Create full S3 access IAM managed policy
       iam_managed_policy:
-        aws_access_key: "{{ aws_access_key }}"
-        aws_secret_key: "{{ aws_secret_key }}"
         policy_name: "{{ iam_policy_name }}"
         policy_description: "Full access to S3 for automation"
         policy: "{{ lookup('file', 'full_s3_policy.json.j2') }}"
         state: present
         region: "{{ region }}"
 
-    - name: Create IAM Role and attach managed policy
+    - name: Create IAM Role and attach managed policy(IAM 롤 생성)
       iam_role:
         name: "{{ iam_role_name }}"
         assume_role_policy_document: "{{ lookup('file', 'assume_role_policy.json') }}"
-        managed_policy:
-          - "arn:aws:iam::{{ aws_account_id }}:policy/{{ iam_policy_name }}"
+        managed_policies:
+          - "{{ iam_policy_name }}"
         state: present
-        aws_access_key: "{{ aws_access_key }}"
-        aws_secret_key: "{{ aws_secret_key }}"
         region: "{{ region }}"
+
+    - name: Create Instance Profile(인스턴스 프로파일 생성)
+      amazon.aws.iam_instance_profile:
+        name: "{{ iam_profile_name }}"
+        state: present
+
+    - name: Add Role to Instance Profile using AWS CLI(AWS CLI를 이용한 인스턴스 프로파일에 롤 추가)
+      ansible.builtin.shell: >
+        aws iam add-role-to-instance-profile \
+        --instance-profile-name "{{ iam_profile_name }}" \
+        --role-name "{{ iam_role_name }}"
   when: ec2_state == "present"
 
 
-- name: Delete IAM policy and role when EC2 is absent
+- name: Delete IAM policy and role when EC2 is absent(삭제 명령시 IAM 정책,역할 삭제)
   block:
-    - name: Delete IAM managed policy
+    - name: Delete IAM managed policy(정책 삭제)
       iam_managed_policy:
-        aws_access_key: "{{ aws_access_key }}"
-        aws_secret_key: "{{ aws_secret_key }}"
         policy_name: "{{ iam_policy_name }}"
         state: absent
         region: "{{ region }}"
 
-    - name: Delete CodeDeploy EC2 Role
+    - name: Delete CodeDeploy EC2 Role(역할 삭제)
       iam_role:
         name: project3-code-deploy-ec2-role
         state: absent
-        aws_access_key: "{{ aws_access_key }}"
-        aws_secret_key: "{{ aws_secret_key }}"
         region: "{{ region }}"
   when: ec2_state == "absent"
-

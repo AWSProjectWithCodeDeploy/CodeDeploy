@@ -1,21 +1,17 @@
 ---
-- name: Create CodeDeploy Role
+- name: Create CodeDeploy Role(CodeDeploy Role 생성)
   iam_role:
     name: "{{ iam_role_name }}"
     assume_role_policy_document: "{{ lookup('file', 'assume_codedeploy.json') }}"
     managed_policy:
       - "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
     state: present
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
   when: iam_role_state == "present"
 
-- name: Delete CodeDeploy Role
+- name: Delete CodeDeploy Role(조건에 의한 Role 삭제)
   iam_role:
     name: "{{ iam_role_name }}"
     state: absent
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
     region: "{{ region }}"
   when: iam_role_state == "absent"

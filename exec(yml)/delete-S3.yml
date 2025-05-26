@@ -1,0 +1,13 @@
+- name: Delete Amazon S3 bucket
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../AWS-S3/vars/vars.yml
+
+  vars:
+    S3_BUCKET_STATE: absent
+
+  roles:
+    - AWS-S3
+

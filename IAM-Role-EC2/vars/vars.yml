@@ -1,4 +1,4 @@
-region: "ap-northeast-2"
+region: ap-northeast-2
 iam_role_name: project3-code-deploy-ec2-role
 iam_policy_name: project3-code-deploy-ec2-policy
-aws_account_id: "491085389788"
+iam_profile_name: project3-code-deploy-ec2-profile

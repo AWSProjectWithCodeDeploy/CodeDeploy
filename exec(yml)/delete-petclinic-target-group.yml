@@ -1,0 +1,15 @@
+---
+- name: Delete Target Group and Listener Rule for PetClinic
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    petclinic_tg_state: absent
+
+  vars_files:
+    - ../Target-Group-springpetclinic/vars/vars.yml
+
+  roles:
+    - Target-Group-springpetclinic
+

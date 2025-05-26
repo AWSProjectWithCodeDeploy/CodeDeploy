@@ -1,0 +1,10 @@
+- name: Terminate PetClinic EC2 and unregister from Target Group
+  hosts: localhost
+
+  vars_files:
+    - ../PetClinic_EC2/vars/vars.yml
+  vars:
+    EC2_state: absent
+
+  roles:
+    - PetClinic_EC2

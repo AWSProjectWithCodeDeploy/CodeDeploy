@@ -1,0 +1,15 @@
+---
+- name: Create Target Group and Register PetClinic EC2
+  hosts: localhost
+  
+  collections:
+    - amazon.aws
+
+  vars:
+    petclinic_tg_state: "present"
+
+  vars_files:
+    - ../Target-Group-springpetclinic/vars/vars.yml
+
+  roles:
+    - Target-Group-springpetclinic

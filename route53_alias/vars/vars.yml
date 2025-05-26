@@ -1,0 +1,5 @@
+route53_zone: "jinlabs.net"
+jenkins_domain: "project3.jenkins.jinlabs.net"
+petclinic_domain: "project3.petclinic.jinlabs.net"
+alb_name: "project3-alb"
+region: "ap-northeast-2"

@@ -1,0 +1,9 @@
+- hosts: localhost
+
+  vars_files:
+    - ../VPC_RT/vars/vars.yml
+  vars:
+    VPC_RT: "present"
+
+  roles:
+    - VPC_RT

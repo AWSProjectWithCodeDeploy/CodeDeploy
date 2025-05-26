@@ -1,46 +1,41 @@
 ---
-    - name: Create VPC # VPC 생성 (vpc_state가 'present'일 때만 실행)
+
+- block:  # 생성 관련 작업 블럭 (vpc_state가 'present'일 때 실행)
+    - name: Create VPC (VPC 생성)
       amazon.aws.ec2_vpc_net:
         name: project3-vpc
         cidr_block: 10.3.0.0/16
-        region: "{{ region }}" 
+        region: "{{ region }}"
         tenancy: default
         tags:
           Name: project3-vpc
       register: vpc_result
-      when: vpc_state == "present"
 
-    # VPC 정보 조회 (생성 후, 또는 삭제 전)
-    - name: Check VPC info after creation or before deletion
+    - name: Check VPC info after creation (생성 후 VPC 정보 조회)
       amazon.aws.ec2_vpc_net_info:
         region: "{{ region }}"
         filters:
           "tag:Name": project3-vpc
       register: vpc_info
-      when: vpc_state in ["present", "absent"]
 
-    # 생성된 VPC 정보 출력
-    - name: Debug VPC Info
-      ansible.builtin.debug:
-        var: vpc_info
-      when: vpc_state == "present"
-
-    # VPC ID 설정 (VPC 생성 후 ID 추출)
-    - name: Set fact with VPC ID (after creation)
+    - name: Set fact with VPC ID (after creation) (생성 후 VPC ID 설정)
       set_fact:
         vpc_id: "{{ vpc_result.vpc.id }}"
-      when: vpc_state == "present"
+  when: vpc_state == "present"
 
-    # VPC 삭제 (vpc_state가 'absent'일 때만 실행)
-    - name: Delete VPC
+
+- block:  # 삭제 관련 작업 블럭 (vpc_state가 'absent'일 때 실행)
+    - name: Check VPC info before deletion (삭제 전 VPC 정보 조회)
+      amazon.aws.ec2_vpc_net_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": project3-vpc
+      register: vpc_info
+
+    - name: Delete VPC (VPC 삭제)
       amazon.aws.ec2_vpc_net:
         region: "{{ region }}"
         vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
         state: absent
-      when: vpc_state == "absent"
 
-    # 삭제 후 VPC 정보 디버그 (삭제 후 VPC 상태 확인)
-    - name: Debug VPC Info after deletion
-      ansible.builtin.debug:
-        msg: "VPC has been deleted."
-      when: vpc_state == "absent"
+  when: vpc_state == "absent"

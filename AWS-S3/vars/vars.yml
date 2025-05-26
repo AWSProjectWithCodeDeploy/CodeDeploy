@@ -1,12 +1,7 @@
 ---
 region: ap-northeast-2
 s3_bucket_name: project3-bucket-00
-code_version: v1.0.0
-
-#아래 리포지토리 생성하고 경로 다시 수정해서 시작할 것것
-github_zip_url: "https://github.com/AWSProjectWithCodeDeploy/YOUR_REPO/releases/download/{{ code_version }}/app.zip"
-local_zip_path: "/tmp/app.zip"
 
 
-
+"
 
