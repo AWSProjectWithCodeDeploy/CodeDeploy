@@ -1,120 +1,116 @@
-- name: Get VPC ID by tag name (태그 이름으로 VPC ID 조회)
-  amazon.aws.ec2_vpc_net_info:
-    region: "{{ region }}"
-    filters:
-      "tag:Name": "{{ vpc_name }}"
-  register: vpc_info
+- block:
+    - name: Get VPC ID by tag name (태그 이름으로 VPC ID 조회)
+      amazon.aws.ec2_vpc_net_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ vpc_name }}"
+      register: vpc_info
 
+    - name: Create Jenkins Target Group (Jenkins 타깃 그룹 생성)
+      command: >
+        aws elbv2 create-target-group
+        --name {{ jenkins_tg_name }}
+        --protocol HTTP
+        --port 8080
+        --vpc-id {{ vpc_info.vpcs[0].vpc_id }}
+        --target-type instance
+        --health-check-protocol HTTP
+        --health-check-port 8080
+        --health-check-path /
+        --tags Key=Name,Value={{ jenkins_tg_name }}
+        --region {{ region }}
+      register: jenkins_tg_result
 
-- name: Create Jenkins Target Group (Jenkins 타깃 그룹 생성)
-  command: >
-    aws elbv2 create-target-group
-    --name {{ jenkins_tg_name }}
-    --protocol HTTP
-    --port 8080
-    --vpc-id {{ vpc_info.vpcs[0].vpc_id }}
-    --target-type instance
-    --health-check-protocol HTTP
-    --health-check-port 8080
-    --health-check-path /
-    --tags Key=Name,Value={{ jenkins_tg_name }}
-    --region {{ region }}
-  register: jenkins_tg_result
+    - name: Extract Jenkins Target Group ARN if exists (존재 시 Jenkins 타깃 그룹 ARN 추출)
+      shell: >
+        aws elbv2 describe-target-groups --names {{ jenkins_tg_name }} --region {{ region }}
+      register: jenkins_tg_desc
 
+    - name: Set Jenkins Target Group ARN (Jenkins 타깃 그룹 ARN 설정)
+      set_fact:
+        jenkins_target_group_arn: >-
+          {{ (jenkins_tg_desc.stdout | default('{}') | from_json).TargetGroups[0].TargetGroupArn
+            if jenkins_tg_desc.stdout is defined and jenkins_tg_desc.stdout | length > 0
+            and (jenkins_tg_desc.stdout | from_json).TargetGroups | length > 0
+            else '' }}
 
+    - name: Save Jenkins Target Group ARN to file (Jenkins 타깃 그룹 ARN 파일에 저장)
+      copy:
+        content: "{{ jenkins_target_group_arn }}"
+        dest: "{{ jenkins_tg_output_file }}"
 
-- name: Extract Jenkins Target Group ARN if exists (존재 시 Jenkins 타깃 그룹 ARN 추출)
-  shell: >
-    aws elbv2 describe-target-groups --names {{ jenkins_tg_name }} --region {{ region }}
-  register: jenkins_tg_desc
+    - name: Get ALB info (ALB 정보 조회)
+      command: >
+        aws elbv2 describe-load-balancers
+        --names {{ alb_name }}
+        --region {{ region }}
+      register: alb_info_raw
 
+    - name: Set ALB ARN and SG ID from CLI response (CLI 응답으로부터 ALB ARN 및 보안 그룹 ID 설정)
+      set_fact:
+        alb_arn: >-
+          {{ (alb_info_raw.stdout | default('{}') | from_json).LoadBalancers[0].LoadBalancerArn
+             if alb_info_raw.stdout is defined and alb_info_raw.stdout | length > 0
+             else '' }}
+        alb_sg_id: >-
+          {{ (alb_info_raw.stdout | from_json).LoadBalancers[0].SecurityGroups[0]
+             if alb_info_raw.stdout is defined and alb_info_raw.stdout | length > 0
+             and (alb_info_raw.stdout | from_json).LoadBalancers[0].SecurityGroups | length > 0
+             else '' }}
 
-- name: Set Jenkins Target Group ARN (Jenkins 타깃 그룹 ARN 설정)
-  set_fact:
-  jenkins_target_group_arn: >-
-    {{ (jenkins_tg_desc.stdout | default('{}') | from_json).TargetGroups[0].TargetGroupArn
-      if jenkins_tg_desc.stdout is defined and jenkins_tg_desc.stdout | length > 0
-      and (jenkins_tg_desc.stdout | default('{}') | from_json).TargetGroups | length > 0
-      else '' }}
+    - name: Create listener for ALB (port 8080) (ALB 리스너 생성)
+      command: >
+        aws elbv2 create-listener
+        --load-balancer-arn {{ alb_arn }}
+        --protocol HTTP
+        --port 8080
+        --default-actions Type=forward,TargetGroupArn={{ jenkins_target_group_arn }}
+        --region {{ region }}
+      register: create_listener_result
 
-- name: Save Jenkins Target Group ARN to file (Jenkins 타깃 그룹 ARN 파일에 저장)
-  copy:
-    content: "{{ jenkins_target_group_arn }}"
-    dest: "{{ jenkins_tg_output_file }}"
+    - name: Get Project3-Jenkins-Accept Security Group ID
+      amazon.aws.ec2_group_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "Project3-Jenkins-Accept"
+          "vpc-id": "{{ vpc_info.vpcs[0].vpc_id }}"
+      register: project3_jenkins_accept_sg_info
 
+    - name: Fail if 'Project3-Jenkins-Accept' SG not found
+      ansible.builtin.fail:
+        msg: "Security Group 'Project3-Jenkins-Accept' not found in VPC {{ vpc_info.vpcs[0].vpc_id }}. Cannot configure Jenkins access."
 
-- name: Get ALB info (ALB 정보 조회)
-  command: >
-    aws elbv2 describe-load-balancers
-    --names {{ alb_name }}
-    --region {{ region }}
-  register: alb_info_raw
+    - name: Set Project3-Jenkins-Accept SG ID
+      set_fact:
+        project3_jenkins_accept_sg_id: "{{ project3_jenkins_accept_sg_info.security_groups[0].group_id }}"
 
+    - name: Get Jenkins EC2 instance ID by tag
+      amazon.aws.ec2_instance_info:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ jenkins_instance_name }}"
+      register: jenkins_instance_info
 
-- name: Set ALB ARN and SG ID from CLI response (CLI 응답으로부터 ALB ARN 및 보안 그룹 ID 설정)
-  set_fact:
-    alb_arn: >-
-      {{ (alb_info_raw.stdout | default('{}') | from_json).LoadBalancers[0].LoadBalancerArn
-         if (alb_info_raw.stdout is defined and alb_info_raw.stdout | length > 0)
-         else '' }}
-    alb_sg_id: >-
-      {{ (alb_info_raw.stdout | default('{}') | from_json).LoadBalancers[0].SecurityGroups[0]
-         if (alb_info_raw.stdout is defined and alb_info_raw.stdout | length > 0
-             and (alb_info_raw.stdout | default('{}') | from_json).LoadBalancers[0].SecurityGroups | length > 0)
-         else '' }}
+    - name: Set Jenkins instance ID
+      set_fact:
+        jenkins_instance_id: >-
+          {{ jenkins_instance_info.instances[0].instance_id
+             if jenkins_instance_info.instances | length > 0 else omit }}
 
-- name: Create listener for ALB (port 8080) (ALB 리스너 생성 (포트 8080))
-  command: >
-    aws elbv2 create-listener
-    --load-balancer-arn {{ alb_arn }}
-    --protocol HTTP
-    --port 8080
-    --default-actions Type=forward,TargetGroupArn={{ jenkins_target_group_arn }}
-    --region {{ region }}
-  register: create_listener_result
+    - name: Print Jenkins Instance ID and TG ARN
+      ansible.builtin.debug:
+        msg: "Jenkins Instance ID: {{ jenkins_instance_id }}, Target Group ARN: {{ jenkins_target_group_arn }}"
 
-- name: Get Project3-Jenkins-Accept Security Group ID (Project3-Jenkins-Accept 보안 그룹 ID 조회)
-  amazon.aws.ec2_group_info:
-    region: "{{ region }}"
-    filters:
-      "tag:Name": "Project3-Jenkins-Accept"
-      "vpc-id": "{{ vpc_info.vpcs[0].vpc_id }}"
-  register: project3_jenkins_accept_sg_info
-
-- name: Fail if 'Project3-Jenkins-Accept' SG not found ('Project3-Jenkins-Accept' 보안 그룹 미발견 시 실패 처리)
-  ansible.builtin.fail:
-    msg: "Security Group 'Project3-Jenkins-Accept' not found in VPC {{ vpc_info.vpcs[0].vpc_id }}. Cannot configure Jenkins access."
-
-- name: Set Project3-Jenkins-Accept SG ID (Project3-Jenkins-Accept 보안 그룹 ID 설정)
-  set_fact:
-    project3_jenkins_accept_sg_id: "{{ project3_jenkins_accept_sg_info.security_groups[0].group_id }}"
-
-- name: Get Jenkins EC2 instance ID by tag (태그로 Jenkins EC2 인스턴스 ID 조회)
-  amazon.aws.ec2_instance_info:
-    region: "{{ region }}"
-    filters:
-      "tag:Name": "{{ jenkins_instance_name }}"
-  register: jenkins_instance_info
-
-- name: Set Jenkins instance ID (Jenkins 인스턴스 ID 설정)
-  set_fact:
-    jenkins_instance_id: >-
-      {{ jenkins_instance_info.instances[0].instance_id if jenkins_instance_info.instances | length > 0 else omit }}
-
-- name: Print Jenkins Instance ID and TG ARN (Jenkins 인스턴스 ID 및 타깃 그룹 ARN 출력)
-  ansible.builtin.debug:
-    msg: "Jenkins Instance ID: {{ jenkins_instance_id }}, Target Group ARN: {{ jenkins_target_group_arn }}"
-
-
-- name: Register Jenkins instance with target group using AWS CLI (AWS CLI로 Jenkins 인스턴스를 타깃 그룹에 등록)
-  command: >
-    aws elbv2 register-targets
-    --target-group-arn {{ jenkins_target_group_arn }}
-    --targets Id={{ jenkins_instance_id }}
-    --region {{ region }}
-  register: register_targets_result
+    - name: Register Jenkins instance with target group using AWS CLI
+      command: >
+        aws elbv2 register-targets
+        --target-group-arn {{ jenkins_target_group_arn }}
+        --targets Id={{ jenkins_instance_id }}
+        --region {{ region }}
+      register: register_targets_result
 
   when: jenkins_tg_state == 'present'
+
 
 
 - block:
